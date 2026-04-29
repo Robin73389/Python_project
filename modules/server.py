@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
+import zmq
 import cv2
-import socket
 import numpy as np
-import struct
+import base64
+import socket
+
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind(('0.0.0.0', 12345))
@@ -14,24 +16,17 @@ print("Connection from", addr)
 print("CLient dit:", conn.recv(1024).decode())
 conn.send(b"Bonjour depuis le serveur!")
 
-image = cv2.imread('coco.jpg')
+socket.setsockopt_string(zmq.SUBSCRIBE, '')
 
-cv2.imshow('image exemple', image)
+while True:
+    jpg_as_text = socket.recv()
+    jpg_original = base64.b64decode(jpg_as_text)
+    jpg_as_np = np.frombuffer(jpg_original, dtype=np.uint8)
+    frame = cv2.imdecode(jpg_as_np, flag=1)
 
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-cv2.imwrite("manouvelleimage.jpg", image)
-
-
-webcam = cv2.VideoCapture(0)
-
-while(True):
-    ret, frame = webcam.read()
-    cv2.imshow('Frame', frame)
+    cv2.imshow('Receiver', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-webcam.release()
+
 cv2.destroyAllWindows()
-conn.close()
